@@ -21,4 +21,4 @@ web-server-fingerprinting-tool/
 ├── socket_connection.py
 ├── fingerprint_engine.py
 ├── scanner.py
-├── targets.txt
+└── targets.txt
