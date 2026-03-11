@@ -1,15 +1,20 @@
 import socket
 import sys #used to read cmd args and cahnge files
 import time
+from banner_parser import *
 
+def input_take():
+    if len(sys.argv)<2:  # makes sure there is atleast one argument to work on
+        print("syntax: python scanner.py args")
+        sys.exit()
 
-if len(sys.argv)<2:  # makes sure there is atleast one argument to work on
-    print("syntax: python scanner.py args")
-    sys.exit()
+    sites=sys.argv[1:] #converts all the arguments into a list
+    return sites
 
-sites=sys.argv[1:] #converts all the arguments into a list
-
-def collect_banner(host, port=80):
+def collect_banner(host, port=443): 
+    """ function for collecting information from the server
+     serevr port 80 is for http
+       """
     s = socket.socket()
     s.settimeout(5)
 
@@ -24,6 +29,8 @@ def collect_banner(host, port=80):
 
     return response.decode(errors="ignore")
 
+
+"""
 def parse_banner(response):
     lines = response.split("\n")
 
@@ -32,20 +39,23 @@ def parse_banner(response):
             return line.strip()
 
     return "Server header not found"
+"""
 
-for target in sites: # iteration thru all the arguments  
-    time.sleep(1) # congestion control
-    try:
-        print("Scanning:", target)
+def scan(sites):
+    for target in sites: # iteration thru all the arguments  
+        time.sleep(1) # congestion control
+        try:
+            print("\n")
+            response=collect_banner(target)
+            print("Scanning:", target)
+            result = analyze_banner(response,"HTTPS")
+            print_result(result)
+            print("\n")
+        
 
-        response = collect_banner(target)
 
-        banner = parse_banner(response)
-
-        print("Banner:", banner)
-
-    except Exception as e:
-        print("Error:", e)
+        except Exception as e:
+            print("Error:", e)
 
 
 
