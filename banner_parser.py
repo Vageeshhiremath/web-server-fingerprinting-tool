@@ -1,11 +1,6 @@
 import re
 
-
 def extract_server_header(response):
-    """
-    Extract the Server header from HTTP response
-    """
-
     if not response:
         return "Server header not found"
 
@@ -15,12 +10,7 @@ def extract_server_header(response):
 
     return "Server header not found"
 
-
 def detect_server_type(server_header):
-    """
-    Identify server type from banner
-    """
-
     header = server_header.lower()
 
     if "apache" in header:
@@ -46,9 +36,6 @@ def detect_server_type(server_header):
 
 
 def extract_version(server_header):
-    """
-    Extract version number using regex
-    """
 
     match = re.search(r"/([\d\.]+)", server_header)
 
@@ -59,9 +46,6 @@ def extract_version(server_header):
 
 
 def analyze_banner(response, protocol="HTTP"):
-    """
-    Main analyzer function
-    """
 
     server_header = extract_server_header(response)
 
@@ -79,9 +63,6 @@ def analyze_banner(response, protocol="HTTP"):
 
 
 def print_result(result):
-    """
-    Print formatted result
-    """
 
     print("Server Type :", result["Server Type"])
     print("Version     :", result["Version"])
@@ -97,7 +78,6 @@ Date: Tue, 10 Mar 2026
 Server: nginx/1.18.0
 Content-Type: text/html
 """
-
     result = analyze_banner(sample_response)
 
     print("\nFingerprint Result")
