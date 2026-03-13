@@ -13,3 +13,12 @@ This project identifies web server type and version by analyzing service banners
 - Python
 - TCP Sockets
 - SSL
+
+## Example commands to check
+- python main.py httpbin.org
+  
+Output expected:
+Scanning: httpbin.org
+Server Type : Gunicorn
+Version     : 19.9.0
+Protocol    : HTTP
