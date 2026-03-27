@@ -1,52 +1,58 @@
-"""Collector for raw TCP HTTP banner retrieval."""
-
 import socket
 import ssl
 import asyncio
-# Default socket timeout in seconds
+
 DEFAULT_TIMEOUT = 5
 
-
-async def get_banner(host: str, port: int, timeout: int = DEFAULT_TIMEOUT) -> str:
-    """Return raw HTTP banner from host:port or an error string."""
-    
-    # minimal HEAD request to fetch headers only
+def get_banner(host: str, port: int, timeout: int = DEFAULT_TIMEOUT) -> str:
     request = f"HEAD / HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n"
-    
-
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(timeout)          # avoid hanging
+            sock.settimeout(timeout)
             if port == 443:
                 context = ssl.create_default_context()
-                
-                reader, writer = await asyncio.wait_for(
-                asyncio.open_connection(host, port, ssl=context, server_hostname=host),timeout=timeout
-                )
-            
-            # read until the server closes the connection
-            banner_bytes = b""
+                sock = context.wrap_socket(sock, server_hostname=host)
+            sock.connect((host, port))
+            sock.sendall(request.encode())
+            banner = b""
             while True:
                 chunk = sock.recv(4096)
                 if not chunk:
                     break
-                banner_bytes += chunk
-
-        return banner_bytes.decode("utf-8", errors="replace")
-
-    except socket.timeout:
-        return f"[ERROR] Connection to {host}:{port} timed out after {timeout}s."
-    except ConnectionRefusedError:
-        return f"[ERROR] Connection refused by {host}:{port}."
-    except socket.gaierror as e:
-        return f"[ERROR] DNS resolution failed for '{host}': {e}"
-    except OSError as e:
-        return f"[ERROR] Socket error connecting to {host}:{port}: {e}"
+                banner += chunk
+        return banner.decode(errors="replace")
+    except Exception as e:
+        return f"[ERROR] {host}:{port} -> {e}"
 
 
-if __name__ == "__main__":
-    # quick smoke test
-    host = "example.com"
-    port = 80
-    print(f"Connecting to {host}:{port}...\n")
-    print(get_banner(host, port))
+async def get_banner_async(host: str, port: int, timeout: int = DEFAULT_TIMEOUT) -> str:
+    request = f"HEAD / HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n"
+    try:
+        if port == 443:
+            context = ssl.create_default_context()
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(host, port, ssl=context, server_hostname=host),
+                timeout=timeout
+            )
+        else:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(host, port),
+                timeout=timeout
+            )
+        writer.write(request.encode())
+        await writer.drain()
+        banner = await asyncio.wait_for(reader.read(), timeout=timeout)
+        writer.close()
+        await writer.wait_closed()
+        return banner.decode(errors="replace")
+    except Exception as e:
+        return f"[ERROR] {host}:{port} -> {e}"
+
+
+async def scan_with_limit(targets, limit=10):
+    sem = asyncio.Semaphore(limit)
+    async def worker(host, port):
+        async with sem:
+            return await get_banner_async(host, port)
+    tasks = [worker(h, p) for h, p in targets]
+    return await asyncio.gather(*tasks)
