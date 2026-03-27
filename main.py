@@ -1,5 +1,7 @@
 from banner_parser import *
 from scanner import *
+import asyncio
+
 
 sites=input_take()
-scan(sites)
+asyncio.run(scan(sites))
