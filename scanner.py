@@ -41,9 +41,26 @@ def check_security_headers(response):
         if h.lower() in response.lower():
             print("Security header detected:", h)
 
+async def scan_target(host,port=80):
+    try:
+        print(f"\nScanning: {host}")
+        response = await get_banner(host,80)
+        protocol = "HTTP"
+        if not response or response.startswith("[ERROR]"):
+            response = await get_banner(host, 443)
+            protocol = "HTTPS"
 
+        if not response:
+                print("no response recieved")
+                
+    except Exception as e:
+        print(f"Error scanning {host}: {e}") 
 
-def scan(sites):
+async def scan(targets):
+    tasks = [scan_target(target) for target in targets]
+    await gather(*tasks)
+
+def scan2(sites):
     for target in sites:
         time.sleep(1)
 
@@ -54,6 +71,7 @@ def scan(sites):
             print("\nScanning:", target)
 
             # Collect banner using collector module
+            
             response = get_banner(target, 80)
             protocol = "HTTP"
 
@@ -64,7 +82,7 @@ def scan(sites):
             if not response:
                 print("no response recieved")
                 continue
-
+            
             check_security_headers(response)
             result = analyze_banner(response, protocol)
 

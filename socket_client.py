@@ -2,11 +2,12 @@
 
 import socket
 import ssl
+import asyncio
 # Default socket timeout in seconds
 DEFAULT_TIMEOUT = 5
 
 
-def get_banner(host: str, port: int, timeout: int = DEFAULT_TIMEOUT) -> str:
+async def get_banner(host: str, port: int, timeout: int = DEFAULT_TIMEOUT) -> str:
     """Return raw HTTP banner from host:port or an error string."""
     
     # minimal HEAD request to fetch headers only
@@ -18,10 +19,11 @@ def get_banner(host: str, port: int, timeout: int = DEFAULT_TIMEOUT) -> str:
             sock.settimeout(timeout)          # avoid hanging
             if port == 443:
                 context = ssl.create_default_context()
-                s = context.wrap_socket(s, server_hostname=host)
-            sock.connect((host, port))       # open TCP connection
-            sock.sendall(request.encode("utf-8"))
-
+                
+                reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(host, port, ssl=context, server_hostname=host),timeout=timeout
+                )
+            
             # read until the server closes the connection
             banner_bytes = b""
             while True:
